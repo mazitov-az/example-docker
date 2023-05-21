@@ -1,0 +1,56 @@
+version: '3.7'
+
+networks:
+  backend:
+    driver: bridge
+
+services:
+  nginx:
+    build:
+      context: services/nginx
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./app:/var/www
+      - ./services/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php
+      - db
+    networks:
+      - backend
+    working_dir: /var/www
+
+  db:
+    build:
+      context: services/mysql
+    container_name: db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: db
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    networks:
+      backend:
+        aliases:
+          - db.pacificsky.ru
+
+  php:
+    build:
+      context: services/php-fpm
+    container_name: php
+    volumes:
+      - ./app:/var/www
+    ports:
+      - "9000:9000"
+    networks:
+      - backend
+    working_dir: /var/www
